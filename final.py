@@ -97,6 +97,14 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"Bot is alive!")
 
+     # Fixes the 501 Error by handling HEAD requests too
+    def do_HEAD(self):
+        self.do_GET()
+
+    # Fixes the 501 Error if UptimeRobot tries a POST request
+    def do_POST(self):
+        self.do_GET()
+
     def log_message(self, format, *args):
         return  # Suppress normal web traffic logs to keep terminal clean
 

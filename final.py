@@ -5,7 +5,7 @@ import time
 import requests
 
 # 1. YOUR DISCORD WEBHOOK URL
-DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1522348204241190953/Tdihs7rTp2lT-DYHgdhXu3omtHkbGYWy8l3KpxXVCylF_3Bk_2kCs9Y6b5pm0yopsgPT"
+DISCORD_WEBHOOK_URL = "DISCORD_WEBHOOK"
 
 # 2. TARGET CROPS
 TARGET_CROPS = ["Wheat"]

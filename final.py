@@ -22,10 +22,10 @@ CROP_MAP = {
     6: "Cactus",
     7: "Sugar Cane",
     8: "Cocoa Beans",
-    9: "Nether Wart"
-    10: "Sunflower"
-    11: "Moonflower"
-    12: "Wild Rose"
+    9: "Nether Wart",
+    10: "Sunflower",
+    11: "Moonflower",
+    12: "Wild Rose",
 }
 
 # --- TARGET CROPS UPDATED TO MATCH THE API NUMBERS ---

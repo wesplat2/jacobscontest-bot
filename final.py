@@ -6,18 +6,35 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 # --- SECURITY PROFILE CONFIGURATION ---
-# Fetches your webhook and User ID hidden in Render's dashboard environment variables
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK")
 DISCORD_USER_ID = os.environ.get("DISCORD_USER_ID")
 
-# Dynamically builds your user ping structure (e.g., <@123456789012345678>)
 USER_PING = f"<@{DISCORD_USER_ID}>" if DISCORD_USER_ID else ""
 
-# TARGET CROPS
-TARGET_CROPS = ["Wheat"]
+# API CROP MAP DICTIONARY
+CROP_MAP = {
+    0: "Wheat",
+    1: "Carrot",
+    2: "Potato",
+    3: "Pumpkin",
+    4: "Melon",
+    5: "Mushroom",
+    6: "Cactus",
+    7: "Sugar Cane",
+    8: "Cocoa Beans",
+    9: "Nether Wart"
+}
+
+# --- TARGET CROPS UPDATED TO MATCH THE API NUMBERS ---
+TARGET_CROPS = [0]  # 0 is the ID for Wheat
 
 # Tracks alerted contests so it doesn't spam
 ALREADY_ALERTED = set()
+
+
+def translate_crops(crops):
+    """Converts a list of numbers like [0, 1, 2] into ['Wheat', 'Carrot', 'Potato']."""
+    return [CROP_MAP.get(c, f"Unknown ({c})") for c in crops]
 
 
 def send_discord_alert(contest_time, crops):
@@ -26,10 +43,11 @@ def send_discord_alert(contest_time, crops):
         print("ERROR: DISCORD_WEBHOOK environment variable is completely missing!")
         return
 
-    # Force all crops to string representation to ensure safe rendering
-    crop_list = ", ".join(map(str, crops))
+    # Translate the crop IDs into readable text strings for Discord
+    readable_crops = translate_crops(crops)
+    crop_list = ", ".join(readable_crops)
+    
     message = {
-        # Drops your secure ping right above the embed box!
         "content": f"{USER_PING} 🌾 🚨 **Jacob's Farming Contest Starting Soon!**",
         "embeds": [
             {
@@ -79,13 +97,14 @@ def check_contests():
             crops = contest.get("crops", [])
 
             if 0 < minutes_until_start <= 10:
-                # Force item mapping to avoid potential internal type bugs
+                # Ensure predictable uniqueness keys
                 str_crops = list(map(str, crops))
                 contest_id = f"{start_timestamp}-{'-'.join(str_crops)}"
 
                 if contest_id not in ALREADY_ALERTED:
+                    # Check if any numeric crop ID matches our target array
                     has_target_crop = (
-                        any(crop in TARGET_CROPS for crop in str_crops)
+                        any(crop in TARGET_CROPS for crop in crops)
                         if TARGET_CROPS
                         else True
                     )
@@ -101,7 +120,7 @@ def check_contests():
         print(f"An error occurred while checking: {e}")
 
 
-# --- UPGRADED RENDER & UP_TIME ROBOT WEB SERVER ---
+# --- RENDER & UP_TIME ROBOT WEB SERVER ---
 class HealthCheckHandler(BaseHTTPRequestHandler):
     """Serves a custom webpage displaying upcoming contests while staying awake."""
 
@@ -121,7 +140,6 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
                 html_content += "<ul>"
                 count = 0
                 
-                # Sort contests chronologically by timestamp
                 sorted_contests = sorted(
                     contests, 
                     key=lambda x: (x.get("time") or x.get("timestamp") or 0)
@@ -132,22 +150,23 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
                     if start_timestamp > 9999999999:
                         start_timestamp = start_timestamp / 1000
 
-                    # Only show future contests
                     if start_timestamp > current_time:
                         crops = contest.get("crops", [])
                         
-                        # --- FIX APPLIED HERE: Safely map everything to string text ---
-                        crop_str = ", ".join(map(str, crops))
+                        # Translate numeric array to plain text strings for the website
+                        readable_crops = translate_crops(crops)
+                        crop_str = ", ".join(readable_crops)
+                        
                         minutes_away = int((start_timestamp - current_time) / 60)
                         
-                        # Convert TARGET_CROPS logic to safely intercept strings too
-                        if any(str(tc) in map(str, crops) for tc in TARGET_CROPS):
+                        # Correct logic to scan target list integers
+                        if any(tc in crops for tc in TARGET_CROPS):
                             html_content += f"<li style='color: gold; font-weight: bold;'>🌾 Target Event: Starting in {minutes_away} mins! (Crops: {crop_str})</li>"
                         else:
                             html_content += f"<li>Contest starting in {minutes_away} mins (Crops: {crop_str})</li>"
                         
                         count += 1
-                        if count >= 10:  # Only show the next 10 items
+                        if count >= 10:
                             break
                             
                 html_content += "</ul>"
@@ -158,16 +177,14 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
 
         self.wfile.write(html_content.encode("utf-8"))
 
-    # Fixes the 501 Error by handling HEAD requests too
     def do_HEAD(self):
         self.do_GET()
 
-    # Fixes the 501 Error if UptimeRobot tries a POST request
     def do_POST(self):
         self.do_GET()
 
     def log_message(self, format, *args):
-        return  # Suppress normal web traffic logs to keep terminal clean
+        return
 
 
 def run_health_check_server():
@@ -187,8 +204,5 @@ def bot_loop():
 
 
 if __name__ == "__main__":
-    # 1. Boot up the contest tracking engine in a parallel thread
     threading.Thread(target=bot_loop, daemon=True).start()
-
-    # 2. Run the web responder on the main thread so Render stays hooked up
     run_health_check_server()

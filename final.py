@@ -132,7 +132,7 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "text/html; charset=utf-8")
         self.end_headers()
 
-        html_content = "<h1>🌾 Upcoming Jacob's Contests 🌾</h1>"
+        html_content = "<h1>Upcoming Jacob's Contests</h1>"
         try:
             url = "https://jacobs.strassburger.dev/api/jacobcontests"
             res = requests.get(url)

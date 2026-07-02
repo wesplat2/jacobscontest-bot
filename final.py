@@ -26,7 +26,8 @@ def send_discord_alert(contest_time, crops):
         print("ERROR: DISCORD_WEBHOOK environment variable is completely missing!")
         return
 
-    crop_list = ", ".join(crops)
+    # Force all crops to string representation to ensure safe rendering
+    crop_list = ", ".join(map(str, crops))
     message = {
         # Drops your secure ping right above the embed box!
         "content": f"{USER_PING} 🌾 🚨 **Jacob's Farming Contest Starting Soon!**",
@@ -78,11 +79,13 @@ def check_contests():
             crops = contest.get("crops", [])
 
             if 0 < minutes_until_start <= 10:
-                contest_id = f"{start_timestamp}-{'-'.join(crops)}"
+                # Force item mapping to avoid potential internal type bugs
+                str_crops = list(map(str, crops))
+                contest_id = f"{start_timestamp}-{'-'.join(str_crops)}"
 
                 if contest_id not in ALREADY_ALERTED:
                     has_target_crop = (
-                        any(crop in TARGET_CROPS for crop in crops)
+                        any(crop in TARGET_CROPS for crop in str_crops)
                         if TARGET_CROPS
                         else True
                     )
@@ -132,11 +135,13 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
                     # Only show future contests
                     if start_timestamp > current_time:
                         crops = contest.get("crops", [])
-                        crop_str = ", ".join(crops)
+                        
+                        # --- FIX APPLIED HERE: Safely map everything to string text ---
+                        crop_str = ", ".join(map(str, crops))
                         minutes_away = int((start_timestamp - current_time) / 60)
                         
-                        # Apply a golden, bold style specifically for your targets!
-                        if any(tc in crops for tc in TARGET_CROPS):
+                        # Convert TARGET_CROPS logic to safely intercept strings too
+                        if any(str(tc) in map(str, crops) for tc in TARGET_CROPS):
                             html_content += f"<li style='color: gold; font-weight: bold;'>🌾 Target Event: Starting in {minutes_away} mins! (Crops: {crop_str})</li>"
                         else:
                             html_content += f"<li>Contest starting in {minutes_away} mins (Crops: {crop_str})</li>"

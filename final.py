@@ -28,16 +28,16 @@ CROP_MAP = {
     12: "Moonflower",
 }
 
-# --- TARGET CROPS UPDATED TO MATCH THE API NUMBERS ---
-TARGET_CROPS = [0]  # 0 is the ID for Wheat
+# --- TARGET CROPS UPDATED TO MATCH THE NEW API NUMBERS ---
+TARGET_CROPS = [9]  # 9 is now the exact ID for Wheat based on the new map
 
 # Tracks alerted contests so it doesn't spam
 ALREADY_ALERTED = set()
 
 
 def translate_crops(crops):
-    """Converts a list of numbers like [0, 1, 2] into ['Wheat', 'Carrot', 'Potato']."""
-    return [CROP_MAP.get(c, f"Unknown ({c})") for c in crops]
+    """Converts a list of numbers into readable strings with integer safety."""
+    return [CROP_MAP.get(int(c), f"Unknown ({c})") for c in crops]
 
 
 def send_discord_alert(contest_time, crops):
@@ -73,7 +73,7 @@ def send_discord_alert(contest_time, crops):
 
 
 def check_contests():
-    """Fetches data from the API and checks for upcoming matches."""
+    """Fetches data from the API and checks for upcoming matches using absolute time."""
     url = "https://jacobs.strassburger.dev/api/jacobcontests"
 
     try:
@@ -83,7 +83,7 @@ def check_contests():
             return
 
         contests = response.json()
-        current_time = time.time()
+        current_time = int(time.time())
 
         for contest in contests:
             start_timestamp = contest.get("time") or contest.get("timestamp")
@@ -91,8 +91,11 @@ def check_contests():
             if not start_timestamp:
                 continue
 
+            # --- BULLETPROOF TIMESTAMP NORMALIZATION ---
             if start_timestamp > 9999999999:
-                start_timestamp = start_timestamp / 1000
+                start_timestamp = int(start_timestamp / 1000)
+            else:
+                start_timestamp = int(start_timestamp)
 
             time_difference_seconds = start_timestamp - current_time
             minutes_until_start = time_difference_seconds / 60
@@ -105,9 +108,9 @@ def check_contests():
                 contest_id = f"{start_timestamp}-{'-'.join(str_crops)}"
 
                 if contest_id not in ALREADY_ALERTED:
-                    # Check if any numeric crop ID matches our target array
+                    # Check if any numeric crop ID matches our target array safely
                     has_target_crop = (
-                        any(crop in TARGET_CROPS for crop in crops)
+                        any(int(crop) in TARGET_CROPS for crop in crops)
                         if TARGET_CROPS
                         else True
                     )
@@ -132,13 +135,13 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "text/html; charset=utf-8")
         self.end_headers()
 
-        html_content = "<h1>Upcoming Jacob's Contests</h1>"
+        html_content = "<h1>🌾 Upcoming Jacob's Contests 🌾</h1>"
         try:
             url = "https://jacobs.strassburger.dev/api/jacobcontests"
             res = requests.get(url)
             if res.status_code == 200:
                 contests = res.json()
-                current_time = time.time()
+                current_time = int(time.time())
 
                 html_content += "<ul>"
                 count = 0
@@ -150,8 +153,12 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
 
                 for contest in sorted_contests:
                     start_timestamp = contest.get("time") or contest.get("timestamp") or 0
+                    
+                    # --- BULLETPROOF TIMESTAMP NORMALIZATION ---
                     if start_timestamp > 9999999999:
-                        start_timestamp = start_timestamp / 1000
+                        start_timestamp = int(start_timestamp / 1000)
+                    else:
+                        start_timestamp = int(start_timestamp)
 
                     if start_timestamp > current_time:
                         crops = contest.get("crops", [])
@@ -162,8 +169,8 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
                         
                         minutes_away = int((start_timestamp - current_time) / 60)
                         
-                        # Correct logic to scan target list integers
-                        if any(tc in crops for tc in TARGET_CROPS):
+                        # Correct logic to scan target list integers safely
+                        if any(int(tc) in TARGET_CROPS for tc in crops):
                             html_content += f"<li style='color: gold; font-weight: bold;'>🌾 Target Event: Starting in {minutes_away} mins! (Crops: {crop_str})</li>"
                         else:
                             html_content += f"<li>Contest starting in {minutes_away} mins (Crops: {crop_str})</li>"

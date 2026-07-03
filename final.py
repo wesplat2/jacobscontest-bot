@@ -13,19 +13,19 @@ USER_PING = f"<@{DISCORD_USER_ID}>" if DISCORD_USER_ID else ""
 
 # API CROP MAP DICTIONARY
 CROP_MAP = {
-    0: "Wheat",
-    1: "Carrot",
-    2: "Potato",
-    3: "Pumpkin",
-    4: "Melon",
-    5: "Mushroom",
-    6: "Cactus",
-    7: "Sugar Cane",
-    8: "Cocoa Beans",
-    9: "Nether Wart",
-    10: "Sunflower",
-    11: "Moonflower",
-    12: "Wild Rose",
+    0: "Cactus",
+    1: "Carrots",
+    2: "Cocoa beans",
+    3: "Melons",
+    4: "Mushrooms",
+    5: "Nether warts",
+    6: "Potatoes",
+    7: "Pumpkins",
+    8: "Sugar cane",
+    9: "Wheat",
+    10: "Wild rose",
+    11: "Sunflower",
+    12: "Moonflower",
 }
 
 # --- TARGET CROPS UPDATED TO MATCH THE API NUMBERS ---
